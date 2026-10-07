@@ -91,6 +91,16 @@ export async function loginAction(
     }
   }
 
+  // Check MFA
+  const { verifyMfa } = await import("./mfa-service");
+  const mfaResult = await verifyMfa(result.user.id, {
+    token: formData.get("mfaToken")?.toString(),
+    backupCode: formData.get("mfaBackupCode")?.toString(),
+  });
+  if (!mfaResult.ok) {
+    return { ok: false, error: mfaResult.error ?? "MFA verification failed" };
+  }
+
   await setSessionToken(result.token);
   redirect("/");
 }

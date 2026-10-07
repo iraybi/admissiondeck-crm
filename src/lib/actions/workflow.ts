@@ -1,7 +1,12 @@
 "use server";
 
+import { prisma } from "@/lib/db/prisma";
+
+
+
+
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentUser, canManageUsers } from "@/lib/auth/session";
 import { resolveScope } from "@/lib/db/scope";
 import {
   createTask,
@@ -178,4 +183,21 @@ async function getCurrentStudentName(id: string): Promise<string | null> {
     select: { name: true },
   });
   return s?.name ?? null;
+}
+
+export async function deactivateUserAction(userId: string) {
+  const actor = await getCurrentUser();
+  if (!actor || !canManageUsers(actor)) return;
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isActive: false },
+  });
+  await prisma.auditLog.create({
+    data: {
+      actorId: actor.id,
+      action: "user.deactivated",
+      entityType: "User",
+      entityId: userId,
+    },
+  });
 }

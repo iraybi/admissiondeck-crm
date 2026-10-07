@@ -1,0 +1,241 @@
+/* Reusable layout and utility classes. */
+
+/* Page shell */
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: var(--topbar-h) 1fr;
+}
+
+.shell-body {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - var(--topbar-h));
+}
+
+.shell-main {
+  min-width: 0;
+  padding: 28px 32px;
+  background: var(--canvas);
+}
+
+.shell-content {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+@media (max-width: 960px) {
+  .shell-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Page header */
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.page-head-text {
+  min-width: 0;
+}
+
+.page-head-text h1 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.page-head-text p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.page-head-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Cards */
+.card {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.card-head h2,
+.card-head h3 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.card-head-aside {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Stacks and grids */
+.stack {
+  display: grid;
+  gap: 20px;
+}
+
+.stack-sm {
+  display: grid;
+  gap: 12px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.grid-2-equal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .grid-2,
+  .grid-2-equal {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Hairline divider list */
+.divided > * + * {
+  border-top: 1px solid var(--line);
+}
+
+.divided-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+}
+
+.divided-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.divided-row:last-child {
+  padding-bottom: 0;
+}
+
+/* Status: left-bar rows */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.status-row.is-ok {
+  border-left-color: var(--ok);
+}
+.status-row.is-warn {
+  border-left-color: var(--warn);
+}
+.status-row.is-bad {
+  border-left-color: var(--bad);
+}
+.status-row.is-info {
+  border-left-color: var(--info);
+}
+.status-row.is-brand {
+  border-left-color: var(--brand);
+}
+
+/* Text helpers */
+.muted {
+  color: var(--muted);
+}
+.text-sm {
+  font-size: 13px;
+}
+.text-xs {
+  font-size: 11px;
+}
+.text-md {
+  font-size: 14px;
+}
+.font-medium {
+  font-weight: 500;
+}
+.font-semibold {
+  font-weight: 600;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Empty state */
+.empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Banner */
+.banner {
+  border-radius: var(--radius);
+  padding: 24px;
+  background: linear-gradient(120deg, var(--brand-soft), var(--surface-raised) 75%);
+  border: 1px solid var(--line);
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+/* Money row */
+.moneyrow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .moneyrow {
+    grid-template-columns: 1fr;
+  }
+}

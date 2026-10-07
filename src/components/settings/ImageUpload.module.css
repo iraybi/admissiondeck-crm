@@ -1,0 +1,47 @@
+.wrap {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.preview {
+  object-fit: cover;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: block;
+}
+
+.logo {
+  width: 96px;
+  height: 64px;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+}
+
+.round {
+  border-radius: 50%;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line-strong);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}

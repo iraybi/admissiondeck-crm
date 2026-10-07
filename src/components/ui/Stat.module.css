@@ -1,0 +1,94 @@
+.stat {
+  display: grid;
+  gap: 6px;
+  padding: var(--space-4);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: left;
+  min-width: 0;
+}
+
+.interactive {
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.interactive:hover {
+  border-color: var(--line-strong);
+}
+
+.value {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.hint {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+/* Tone applies a left bar and tinted value, not a filled chip */
+.brand,
+.ok,
+.warn,
+.bad,
+.info {
+  border-left-width: 3px;
+  background: var(--surface);
+}
+
+.brand {
+  border-left-color: var(--brand);
+}
+.brand .value {
+  color: var(--brand-ink);
+}
+
+.ok {
+  border-left-color: var(--ok);
+}
+.ok .value {
+  color: var(--teal);
+}
+
+.warn {
+  border-left-color: var(--warn);
+}
+.warn .value {
+  color: var(--orange);
+}
+
+.bad {
+  border-left-color: var(--bad);
+}
+.bad .value {
+  color: var(--brand-ink);
+}
+
+.info {
+  border-left-color: var(--info);
+}
+.info .value {
+  color: var(--info);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

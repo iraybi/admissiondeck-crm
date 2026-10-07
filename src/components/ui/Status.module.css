@@ -1,0 +1,104 @@
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1;
+  padding: 4px 8px 4px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  max-width: 100%;
+}
+
+.marker {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--line-strong);
+  flex: none;
+}
+
+.text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ok {
+  background: var(--ok-soft);
+  border-color: transparent;
+  color: var(--teal);
+}
+.ok .marker {
+  background: var(--teal);
+}
+
+.warn {
+  background: var(--warn-soft);
+  border-color: transparent;
+  color: var(--orange);
+}
+.warn .marker {
+  background: var(--orange);
+}
+
+.bad {
+  background: var(--bad-soft);
+  border-color: transparent;
+  color: var(--brand-ink);
+}
+.bad .marker {
+  background: var(--brand);
+}
+
+.info {
+  background: var(--info-soft);
+  border-color: transparent;
+  color: var(--info);
+}
+.info .marker {
+  background: var(--info);
+}
+
+.brand {
+  background: var(--brand-soft);
+  border-color: transparent;
+  color: var(--brand-ink);
+}
+.brand .marker {
+  background: var(--brand);
+}
+
+.neutral {
+  color: var(--muted);
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowAction {
+  flex: none;
+}
+
+.peach {
+  background: var(--peach-soft, var(--orange-soft));
+  border-color: transparent;
+  color: var(--peach, var(--orange));
+}
+.peach .marker {
+  background: var(--peach, var(--orange));
+}
+
+.muted {
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+.muted .marker {
+  background: var(--line-strong);
+}

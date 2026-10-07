@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const nav: NavItem[] = [
   { href: "/platform", label: "Overview" },
   { href: "/platform/tenants", label: "Tenants" },
+  { href: "/platform/referrals", label: "Referrals" },
   { href: "/platform/subscriptions", label: "Subscriptions" },
   { href: "/platform/security", label: "Security" },
   { href: "/platform/leads", label: "Leads" },

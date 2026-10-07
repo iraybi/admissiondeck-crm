@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Shell, PageHead } from "@/components/layout/Shell";
+import { SubscriptionAlerts, SubscriptionBanner } from "@/components/domain/SubscriptionAlerts";
 import { Button } from "@/components/ui/Button";
 import { Stat, StatGrid } from "@/components/ui/Stat";
 import { StatusRow } from "@/components/ui/Status";
@@ -202,14 +203,97 @@ async function FirmDashboard({ user, nav }: { user: any; nav: NavItem[] }) {
 
 /* ===== Agency Manager Dashboard ===== */
 async function AgencyDashboard({ user, nav }: { user: any; nav: NavItem[] }) {
+  const { getSubscriptionAlerts, getSubscriptionSummary } = await import(
+    "@/lib/billing/subscription-alerts"
+  );
+  const { getAgencyPerformance } = await import("@/lib/analytics/performance");
+  const { listStaffWithCounts } = await import("@/lib/analytics/deep-queries");
+
+  const [alerts, summary, perf, staff] = await Promise.all([
+    getSubscriptionAlerts(user.orgId ?? ""),
+    getSubscriptionSummary(user.orgId ?? ""),
+    getAgencyPerformance(user.orgPath ?? "org"),
+    listStaffWithCounts({ orgPaths: [user.orgPath ?? "org"] }),
+  ]);
+
   return (
     <Shell portal="agency" orgName={user.orgName ?? ""} orgPath={user.orgPath ?? ""} user={{ name: user.name, role: "Agency manager" }} nav={nav}>
       <PageHead title="Agency dashboard" subtitle={user.orgName} />
-      <div className="status-row is-brand">
-        <div>
-          <div className="font-medium">Welcome, {user.name}</div>
-          <div className="text-sm muted">Manage your staff, students, and operations.</div>
+
+      {/* Subscription alerts */}
+      {alerts.length > 0 ? (
+        <SubscriptionAlerts alerts={alerts} />
+      ) : null}
+
+      {/* Subscription banner */}
+      {summary ? (
+        <SubscriptionBanner
+          status={summary.status}
+          plan={summary.plan}
+          daysRemaining={summary.daysRemaining}
+          currentPeriodEnd={summary.currentPeriodEnd}
+        />
+      ) : null}
+
+      {/* Quick stats */}
+      <div className="stats three" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--space-3)", marginBottom: "var(--space-5)" }}>
+        <div className="status-row is-brand">
+          <div>
+            <div className="kicker">Students</div>
+            <div className="font-semibold tabular" style={{ fontSize: 24 }}>{perf.students}</div>
+            <div className="text-xs muted">{perf.byStatus.ACTIVE ?? 0} active</div>
+          </div>
         </div>
+        <div className="status-row is-ok">
+          <div>
+            <div className="kicker">Visa rate</div>
+            <div className="font-semibold tabular" style={{ fontSize: 24 }}>{perf.visaRate}%</div>
+            <div className="text-xs muted">Of decided cases</div>
+          </div>
+        </div>
+        <div className="status-row is-info">
+          <div>
+            <div className="kicker">Staff</div>
+            <div className="font-semibold tabular" style={{ fontSize: 24 }}>{staff.length}</div>
+            <div className="text-xs muted">Team members</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid-2">
+        <section className="card">
+          <div className="card-head">
+            <h2>Welcome, {user.name}</h2>
+          </div>
+          <p className="text-sm muted">
+            Manage your staff, students, and operations. Use the sidebar to navigate.
+          </p>
+        </section>
+        <section className="card">
+          <div className="card-head">
+            <h2>Quick actions</h2>
+          </div>
+          <div className="stack-sm">
+            <div className="status-row is-brand">
+              <div>
+                <div className="font-medium text-sm">Student pipeline</div>
+                <div className="text-sm muted">View and manage all students</div>
+              </div>
+            </div>
+            <div className="status-row is-brand">
+              <div>
+                <div className="font-medium text-sm">Staff management</div>
+                <div className="text-sm muted">Invite and manage team members</div>
+              </div>
+            </div>
+            <div className="status-row is-brand">
+              <div>
+                <div className="font-medium text-sm">Payment review</div>
+                <div className="text-sm muted">Verify student payment proofs</div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </Shell>
   );

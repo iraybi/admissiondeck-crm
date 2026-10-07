@@ -4,6 +4,8 @@ import { Shell, PageHead } from "@/components/layout/Shell";
 import { Stat, StatGrid } from "@/components/ui/Stat";
 import { Button } from "@/components/ui/Button";
 import { StatusRow } from "@/components/ui/Status";
+import { SubscriptionAlerts, SubscriptionBanner } from "@/components/domain/SubscriptionAlerts";
+import { getSubscriptionAlerts, getSubscriptionSummary } from "@/lib/billing/subscription-alerts";
 import { OrgTree } from "@/components/domain/OrgTree";
 import { SeatUsage } from "@/components/domain/SeatUsage";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -57,6 +59,8 @@ export default async function OverviewPage() {
   const agencies = orgs.filter((o) => o.kind === "AGENCY");
 
   const activity = await getRecentActivity(scope.orgPaths, 8);
+  const subscriptionAlerts = await getSubscriptionAlerts(user.orgId ?? "");
+  const subscriptionSummary = await getSubscriptionSummary(user.orgId ?? "");
 
   const nav: NavItem[] = [
     ...adminNav,
@@ -112,6 +116,21 @@ export default async function OverviewPage() {
           tone="warn"
         />
       </StatGrid>
+
+      {/* Subscription alerts */}
+      {subscriptionAlerts.length > 0 ? (
+        <SubscriptionAlerts alerts={subscriptionAlerts} />
+      ) : null}
+
+      {/* Subscription banner */}
+      {subscriptionSummary ? (
+        <SubscriptionBanner
+          status={subscriptionSummary.status}
+          plan={subscriptionSummary.plan}
+          daysRemaining={subscriptionSummary.daysRemaining}
+          currentPeriodEnd={subscriptionSummary.currentPeriodEnd}
+        />
+      ) : null}
 
       <div className="grid-2" style={{ marginTop: "var(--space-6)" }}>
         <section className="card">

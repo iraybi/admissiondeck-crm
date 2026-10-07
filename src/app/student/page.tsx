@@ -1,180 +1,223 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Shell, PageHead } from "@/components/layout/Shell";
 import { Button } from "@/components/ui/Button";
 import { Status } from "@/components/ui/Status";
-import { PipelineStepper } from "@/components/domain/PipelineStepper";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { students, payments, agencies, users } from "@/lib/demo-data";
-import type { DocStatus, PaymentState } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth/session";
+import { prisma } from "@/lib/db/prisma";
 import type { NavItem } from "@/components/layout/SideNav";
 import { formatDate, formatMoney, pct } from "@/lib/utils";
 
-const student = students[0];
-const agency = agencies.find((a) => a.id === student.orgId)!;
-const counsellor = users.find((u) => u.id === student.counsellorId);
-const myPayments = payments.filter((p) => p.studentId === student.id);
+export const dynamic = "force-dynamic";
 
 const nav: NavItem[] = [
-  { href: "/student", label: "My journey" },
+  { href: "/", label: "My journey" },
   { href: "/student/documents", label: "Documents" },
-  { href: "/student/payments", label: "Payments" },
+  { href: "/settings", label: "Settings" },
 ];
 
-const DOC_TONE: Record<DocStatus, "ok" | "brand" | "warn" | "bad"> = {
-  approved: "ok",
-  uploaded: "brand",
-  missing: "warn",
-  rejected: "bad",
+const STATUS_TONE: Record<string, "ok" | "brand" | "warn" | "bad" | "info"> = {
+  VISA: "ok",
+  COMPLETED: "info",
+  ACTIVE: "brand",
+  LEAD: "warn",
+  REFUSED: "bad",
 };
 
-const DOC_LABEL: Record<DocStatus, string> = {
-  approved: "Accepted",
-  uploaded: "Under review",
-  missing: "Required",
-  rejected: "Resubmit",
+const DOC_TONE: Record<string, "ok" | "brand" | "warn" | "bad"> = {
+  AVAILABLE: "ok",
+  UPLOADED: "brand",
+  QUARANTINED: "warn",
+  REJECTED: "bad",
 };
 
-const PAY_TONE: Record<PaymentState, "ok" | "brand" | "warn" | "bad"> = {
-  verified: "ok",
-  in_review: "brand",
-  pending: "warn",
-  rejected: "bad",
+const PAY_TONE: Record<string, "ok" | "brand" | "warn" | "bad"> = {
+  VERIFIED: "ok",
+  IN_REVIEW: "brand",
+  PENDING: "warn",
+  REJECTED: "bad",
 };
 
-const PAY_LABEL: Record<PaymentState, string> = {
-  verified: "Verified",
-  in_review: "In review",
-  pending: "Action needed",
-  rejected: "Rejected",
-};
+export default async function StudentPortalPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
 
-export default function StudentPortal() {
-  const done = student.stages.filter((s) => s.done).length;
-  const progress = pct(done, student.stages.length);
-  const next = student.stages.find((s) => !s.done);
+  // Find student profile linked to this user
+  const student = await prisma.student.findFirst({
+    where: { email: user.email },
+    include: {
+      org: { select: { name: true, orgPath: true, logoUrl: true } },
+      counsellor: { select: { name: true, email: true } },
+      documents: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      },
+      payments: {
+        orderBy: { createdAt: "desc" },
+        include: { verifiedBy: { select: { name: true } } },
+      },
+      notes: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: { author: { select: { name: true } } },
+      },
+    },
+  });
+
+  if (!student) {
+    return (
+      <Shell
+        portal="student"
+        orgName={user.orgName ?? "Workspace"}
+        orgPath={user.orgPath ?? ""}
+        user={{ name: user.name, role: "Student" }}
+        nav={nav}
+      >
+        <PageHead title="My journey" />
+        <section className="card">
+          <p className="text-sm muted">
+            No student profile linked to your account yet. Contact your
+            counsellor to get started.
+          </p>
+        </section>
+      </Shell>
+    );
+  }
+
+  const progress = student.status === "COMPLETED" || student.status === "VISA" ? 100 : 50;
+  const approvedDocs = student.documents.filter((d) => d.status === "AVAILABLE").length;
+  const verifiedPayments = student.payments.filter((p) => p.state === "VERIFIED").length;
 
   return (
     <Shell
       portal="student"
-      orgName={agency.name}
-      orgPath={`${agency.path}.${student.id}`}
-      user={{ name: student.name, role: "Student" }}
+      orgName={student.org.name}
+      orgPath={student.org.orgPath}
+      user={{ name: user.name, role: "Student" }}
       nav={nav}
+      logoUrl={student.org.logoUrl}
     >
-      <PageHead
-        title={`Hello, ${student.name.split(" ")[0]}`}
-        subtitle={`${student.programme} · ${student.university} · ${student.intake}`}
-      />
+      <div className="banner">
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <h1 style={{ fontSize: "var(--text-xl)" }}>Hello, {student.name.split(" ")[0]}</h1>
+          <div className="text-sm muted" style={{ marginTop: "var(--space-1)" }}>
+            {student.targetCountry} · {student.targetProgram ?? "Program not set"} · {student.targetIntake ?? "Intake not set"}
+          </div>
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 32, fontWeight: 600 }}>{progress}%</div>
+          <div className="text-sm muted">complete</div>
+        </div>
+      </div>
 
       <div className="grid-2">
         <div className="stack">
+          {/* Journey */}
           <section className="card">
             <div className="card-head">
-              <h2>Your pipeline</h2>
+              <h2>Your journey</h2>
               <div className="card-head-aside">
-                <span className="text-sm muted tabular">{progress}% complete</span>
+                <Status tone={STATUS_TONE[student.status] ?? "neutral"}>
+                  {student.status}
+                </Status>
               </div>
             </div>
-            <PipelineStepper stages={student.stages} />
-            {next ? (
-              <div className="status-row is-brand" style={{ marginTop: "var(--space-4)" }}>
-                <div>
-                  <div className="font-medium text-sm">Current step</div>
-                  <div className="text-sm">
-                    {next.name} · due {formatDate(next.due)}
-                  </div>
-                </div>
+            <ProgressBar value={progress} label="Overall progress" />
+            <div className="note" style={{ marginTop: "var(--space-3)" }}>
+              Your counsellor will guide you through each stage. Upload required
+              documents to keep moving forward.
+            </div>
+          </section>
+
+          {/* Documents */}
+          <section className="card">
+            <div className="card-head">
+              <h2>Documents</h2>
+              <div className="card-head-aside">
+                <Link href="/student/documents">
+                  <Button variant="secondary" size="sm">View all</Button>
+                </Link>
               </div>
-            ) : null}
-          </section>
-
-          <section className="card">
-            <div className="card-head">
-              <h2>Document checklist</h2>
             </div>
-            <div className="divided">
-              {student.docs.map((d) => (
-                <div key={d.id} className="divided-row">
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="font-medium">{d.name}</div>
-                  </div>
-                  {d.status === "missing" ? (
-                    <Button variant="secondary" size="sm">
-                      Upload
-                    </Button>
-                  ) : (
-                    <Status tone={DOC_TONE[d.status]}>{DOC_LABEL[d.status]}</Status>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <div className="stack">
-          <section className="card">
-            <div className="card-head">
-              <h2>Payments</h2>
-            </div>
-            {myPayments.length === 0 ? (
-              <p className="text-sm muted">No payments due.</p>
+            {student.documents.length === 0 ? (
+              <p className="text-sm muted">No documents uploaded yet.</p>
             ) : (
-              <div className="stack-sm">
-                {myPayments.map((p) => (
-                  <div key={p.id} className="status-row is-brand">
+              <div className="divided">
+                {student.documents.slice(0, 5).map((d) => (
+                  <div key={d.id} className="divided-row">
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="font-medium">{p.title}</div>
-                      <div className="text-sm muted tabular">
-                        {formatMoney(p.amount, p.currency)}
-                      </div>
+                      <div className="font-medium text-sm">{d.type}</div>
+                      <div className="text-xs muted">{d.fileName}</div>
                     </div>
-                    {p.state === "pending" ? (
-                      <Button size="sm">Pay now</Button>
-                    ) : (
-                      <Status tone={PAY_TONE[p.state]}>{PAY_LABEL[p.state]}</Status>
-                    )}
+                    <Status tone={DOC_TONE[d.status] ?? "neutral"}>{d.status}</Status>
                   </div>
                 ))}
               </div>
             )}
           </section>
 
+          {/* Payments */}
+          <section className="card">
+            <div className="card-head">
+              <h2>Payments</h2>
+            </div>
+            {student.payments.length === 0 ? (
+              <p className="text-sm muted">No payment obligations.</p>
+            ) : (
+              <div className="divided">
+                {student.payments.map((p) => (
+                  <div key={p.id} className="divided-row">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="font-medium text-sm">{p.title}</div>
+                      <div className="text-xs muted">{formatMoney(Number(p.amount), p.currency)}</div>
+                    </div>
+                    <Status tone={PAY_TONE[p.state] ?? "neutral"}>{p.state}</Status>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="stack">
+          {/* Profile */}
+          <section className="card">
+            <div className="card-head">
+              <h2>Profile</h2>
+            </div>
+            <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "8px 14px", fontSize: "var(--text-base)" }}>
+              <dt className="muted">Email</dt>
+              <dd style={{ margin: 0 }}>{student.email}</dd>
+              <dt className="muted">Phone</dt>
+              <dd style={{ margin: 0 }}>{student.phone ?? "-"}</dd>
+              <dt className="muted">Country</dt>
+              <dd style={{ margin: 0 }}>{student.targetCountry}</dd>
+              <dt className="muted">Counsellor</dt>
+              <dd style={{ margin: 0 }}>{student.counsellor?.name ?? "Unassigned"}</dd>
+            </dl>
+          </section>
+
+          {/* Messages */}
           <section className="card">
             <div className="card-head">
               <h2>Messages</h2>
             </div>
-            <div className="stack-sm">
-              <div className="status-row is-brand">
-                <div>
-                  <div className="font-medium text-sm">
-                    {counsellor?.name ?? "Counsellor"}
+            {student.notes.length === 0 ? (
+              <p className="text-sm muted">No messages yet.</p>
+            ) : (
+              <div className="stack-sm">
+                {student.notes.map((n) => (
+                  <div key={n.id} className="status-row is-brand">
+                    <div>
+                      <div className="font-medium text-sm">{n.author.name}</div>
+                      <div className="text-sm">{n.body}</div>
+                      <div className="text-xs muted">{formatDate(n.createdAt)}</div>
+                    </div>
                   </div>
-                  <div className="text-sm">
-                    Your tuition deposit is confirmed. Next step: prepare your
-                    visa file. Please upload your police clearance and sponsor
-                    letter.
-                  </div>
-                  <div className="text-xs muted" style={{ marginTop: 4 }}>
-                    {formatDate(new Date(Date.now() - 2 * 864e5))}
-                  </div>
-                </div>
+                ))}
               </div>
-              <div className="status-row">
-                <div>
-                  <div className="font-medium text-sm">AdmissionDeck</div>
-                  <div className="text-sm">
-                    Welcome. Your counsellor will guide each stage of the
-                    application.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="card">
-            <div className="card-head">
-              <h2>Progress</h2>
-            </div>
-            <ProgressBar value={progress} label="Overall journey" />
+            )}
           </section>
         </div>
       </div>

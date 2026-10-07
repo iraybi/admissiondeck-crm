@@ -6,7 +6,7 @@ import { Shell, PageHead } from "@/components/layout/Shell";
 import { Stat, StatGrid } from "@/components/ui/Stat";
 import { Status } from "@/components/ui/Status";
 import { Table, Row, Cell } from "@/components/ui/Table";
-import { CommissionPayButton } from "@/components/domain/CommissionPayButton";
+import { CommissionPayButton, CommissionCreateForm } from "@/components/domain/CommissionActions";
 import type { NavItem } from "@/components/layout/SideNav";
 import { formatDate, formatMoney } from "@/lib/utils";
 

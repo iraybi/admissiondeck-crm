@@ -1,137 +1,115 @@
-"use client";
-
-import { useState } from "react";
+import { redirect } from "next/navigation";
 import { Shell, PageHead } from "@/components/layout/Shell";
 import { Button } from "@/components/ui/Button";
+import { Stat, StatGrid } from "@/components/ui/Stat";
 import { Avatar } from "@/components/ui/Avatar";
 import { Status } from "@/components/ui/Status";
 import { Table, Row, Cell } from "@/components/ui/Table";
-import { Modal } from "@/components/ui/Modal";
-import { Field, Input, Select, FormGrid } from "@/components/ui/Field";
-import { agencies, users } from "@/lib/demo-data";
-import { adminNav, currentUser, firmOrg } from "@/lib/portal";
+import { getCurrentUser } from "@/lib/auth/session";
+import { resolveScope } from "@/lib/db/scope";
+import { listStaffWithCounts } from "@/lib/analytics/deep-queries";
+import { prisma } from "@/lib/db/prisma";
+import { InviteUserForm } from "@/components/settings/InviteUserForm";
+import { DeactivateUserButton } from "@/components/domain/UserActions";
+import type { NavItem } from "@/components/layout/SideNav";
+
+export const dynamic = "force-dynamic";
+
+const nav: NavItem[] = [
+  { href: "/", label: "Overview" },
+  { href: "/agencies", label: "Agencies" },
+  { href: "/staff", label: "Staff" },
+  { href: "/students", label: "Students" },
+  { href: "/settings", label: "Settings" },
+];
 
 const ROLE_LABEL: Record<string, string> = {
-  firm_manager: "Firm manager",
-  agency_manager: "Agency manager",
-  counsellor: "Counsellor",
-  agent: "Recruiting agent",
-  student: "Student",
-  platform_admin: "Platform admin",
+  PLATFORM_ADMIN: "Platform admin",
+  FIRM_MANAGER: "Firm manager",
+  AGENCY_MANAGER: "Agency manager",
+  COUNSELLOR: "Counsellor",
+  AGENT: "Agent",
 };
 
-export default function TeamPage() {
-  const [inviting, setInviting] = useState(false);
-  const invited = users.filter((u) => u.status === "invited").length;
+export default async function TeamPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const scope = await resolveScope(user);
+  const staff = await listStaffWithCounts({ orgPaths: scope.orgPaths });
 
   return (
     <Shell
       portal="admin"
-      orgName={firmOrg.name}
-      orgPath={firmOrg.path}
-      user={{ name: currentUser.name, role: "Firm manager" }}
-      nav={adminNav}
+      orgName={user.orgName ?? "Workspace"}
+      orgPath={user.orgPath ?? ""}
+      user={{ name: user.name, role: user.role.replace("_", " ") }}
+      nav={nav}
     >
       <PageHead
         title="Team"
-        subtitle="Counsellors, managers, and agents on this tenant"
-        actions={<Button onClick={() => setInviting(true)}>Invite member</Button>}
+        subtitle={`${staff.length} team members`}
       />
 
-      <Table
-        columns={[
-          { key: "member", label: "Member" },
-          { key: "role", label: "Role" },
-          { key: "agency", label: "Agency" },
-          { key: "status", label: "Status" },
-          { key: "email", label: "Email" },
-        ]}
-      >
-        {users.map((u) => {
-          const agency = agencies.find((a) => a.id === u.orgId);
-          return (
-            <Row key={u.id}>
+      <StatGrid>
+        <Stat label="Total staff" value={staff.length} hint="All roles" tone="brand" />
+        <Stat label="Counsellors" value={staff.filter((s) => s.role === "COUNSELLOR").length} hint="Student-facing" tone="info" />
+        <Stat label="Agents" value={staff.filter((s) => s.role === "AGENT").length} hint="External recruiters" tone="warn" />
+        <Stat label="Managers" value={staff.filter((s) => s.role.includes("MANAGER")).length} hint="Leadership" tone="ok" />
+      </StatGrid>
+
+      <div style={{ marginTop: "var(--space-6)" }}>
+        <Table
+          columns={[
+            { key: "name", label: "Member" },
+            { key: "role", label: "Role" },
+            { key: "agency", label: "Agency" },
+            { key: "students", label: "Students" },
+            { key: "status", label: "Status" },
+          ]}
+        >
+          {staff.map((s) => (
+            <Row key={s.id}>
               <Cell>
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <Avatar name={u.name} size={32} />
+                  <Avatar name={s.name} size={32} />
                   <div>
-                    <div className="font-medium">{u.name}</div>
+                    <div className="font-medium">{s.name}</div>
+                    <div className="text-sm muted">{s.email}</div>
                   </div>
                 </div>
               </Cell>
-              <Cell>{ROLE_LABEL[u.role] ?? u.role}</Cell>
-              <Cell>{agency?.name ?? u.orgId}</Cell>
               <Cell>
-                <Status tone={u.status === "active" ? "ok" : "warn"}>
-                  {u.status === "active" ? "Active" : "Invited"}
+                <Status tone={s.role === "AGENT" ? "peach" : s.role.includes("MANAGER") ? "info" : "brand"}>
+                  {ROLE_LABEL[s.role] ?? s.role}
                 </Status>
               </Cell>
               <Cell>
-                <span className="text-sm muted">{u.email}</span>
+                <div className="text-sm">{s.orgName ?? "Unassigned"}</div>
+              </Cell>
+              <Cell>
+                <div className="text-sm">
+                  <span className="tabular">{s.studentsAssigned + s.studentsReferred}</span>
+                </div>
+              </Cell>
+              <Cell>
+                <Status tone={s.isActive ? "ok" : "bad"}>
+                  {s.isActive ? "Active" : "Inactive"}
+                </Status>
               </Cell>
             </Row>
-          );
-        })}
-      </Table>
+          ))}
+        </Table>
+      </div>
 
-      <p className="text-sm muted" style={{ marginTop: "var(--space-4)" }}>
-        {invited} pending invite{invited === 1 ? "" : "s"}. Each accepted invite
-        reserves a seat and may trigger a prorated Stripe charge.
-      </p>
-
-      <Modal
-        open={inviting}
-        title="Invite team member"
-        onClose={() => setInviting(false)}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setInviting(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setInviting(false);
-              }}
-            >
-              Send invite
-            </Button>
-          </>
-        }
-      >
-        <FormGrid>
-          <Field label="Full name">
-            <Input placeholder="e.g. Sabbir Khan" />
-          </Field>
-          <Field label="Work email">
-            <Input type="email" placeholder="name@chs.edu.bd" />
-          </Field>
-          <Field label="Role">
-            <Select defaultValue="counsellor">
-              <option value="counsellor">Counsellor</option>
-              <option value="agency_manager">Agency manager</option>
-              <option value="agent">Recruiting agent</option>
-            </Select>
-          </Field>
-          <Field label="Agency">
-            <Select defaultValue={agencies[0]?.id}>
-              {agencies.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </FormGrid>
-        <div className="status-row is-warn">
-          <div>
-            <div className="font-medium text-sm">Seat check</div>
-            <div className="text-sm">
-              The Stripe subscription will increase by 1 seat with proration for
-              the remainder of the billing cycle.
-            </div>
+      {user.orgId ? (
+        <section className="card" style={{ marginTop: "var(--space-6)" }}>
+          <div className="card-head">
+            <h2>Invite a teammate</h2>
           </div>
-        </div>
-      </Modal>
+          <InviteUserForm orgId={user.orgId} canInvite={true} />
+        </section>
+      ) : null}
     </Shell>
   );
 }

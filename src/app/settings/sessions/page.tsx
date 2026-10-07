@@ -1,25 +1,44 @@
 import { redirect } from "next/navigation";
+import { Shell, PageHead } from "@/components/layout/Shell";
 import { getCurrentUser } from "@/lib/auth/session";
 import { listSessions } from "@/lib/auth/account";
 import { Status } from "@/components/ui/Status";
-import { RevokeSessionButtons } from "@/components/settings/RevokeSessionButtons";
+import { SessionActions, RevokeAllButton } from "@/components/settings/SessionActions";
+import type { NavItem } from "@/components/layout/SideNav";
 
-export default async function SettingsSessionsPage() {
+export const dynamic = "force-dynamic";
+
+const nav: NavItem[] = [
+  { href: "/settings", label: "Profile" },
+  { href: "/settings/security", label: "Security" },
+  { href: "/settings/organization", label: "Organization" },
+  { href: "/settings/email", label: "Email" },
+  { href: "/settings/team", label: "Team" },
+  { href: "/settings/documents", label: "Document rules" },
+  { href: "/settings/sessions", label: "Sessions" },
+];
+
+export default async function SessionsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const sessions = await listSessions(user.id);
 
   return (
-    <>
-      <section className="card">
-        <div className="card-head">
-          <h2>Active sessions</h2>
-          <div className="card-head-aside">
-            <RevokeSessionButtons />
-          </div>
-        </div>
+    <Shell
+      portal="manage"
+      orgName={user.orgName ?? "Workspace"}
+      orgPath={user.orgPath ?? ""}
+      user={{ name: user.name, role: user.role.replace("_", " ") }}
+      nav={nav}
+    >
+      <PageHead
+        title="Active sessions"
+        subtitle="Manage your signed-in devices"
+        actions={<RevokeAllButton />}
+      />
 
+      <section className="card">
         <div className="divided">
           {sessions.length === 0 ? (
             <p className="text-sm muted">No active sessions.</p>
@@ -41,35 +60,12 @@ export default async function SettingsSessionsPage() {
                   </div>
                 </div>
                 <Status tone="ok">Active</Status>
+                <SessionActions sessionId={s.id} />
               </div>
             ))
           )}
         </div>
       </section>
-
-      <section className="card">
-        <div className="card-head">
-          <h2>Sign out</h2>
-        </div>
-        <div className="stack-sm">
-          <div className="status-row is-brand">
-            <div>
-              <div className="font-medium text-sm">Sign out of this device</div>
-              <div className="text-sm muted">
-                Ends your session and returns you to the login page.
-              </div>
-            </div>
-          </div>
-          <div className="status-row is-warn">
-            <div>
-              <div className="font-medium text-sm">Sign out everywhere</div>
-              <div className="text-sm muted">
-                Revokes all sessions except the one you are using now.
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </>
+    </Shell>
   );
 }

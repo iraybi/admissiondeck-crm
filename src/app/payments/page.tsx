@@ -6,7 +6,7 @@ import { Shell, PageHead } from "@/components/layout/Shell";
 import { Stat, StatGrid } from "@/components/ui/Stat";
 import { Status } from "@/components/ui/Status";
 import { Table, Row, Cell } from "@/components/ui/Table";
-import { PaymentReviewActions } from "@/components/domain/PaymentReviewActions";
+import { PaymentActions, PaymentCreateForm } from "@/components/domain/PaymentActions";
 import type { NavItem } from "@/components/layout/SideNav";
 import { formatDate, formatMoney } from "@/lib/utils";
 
@@ -118,7 +118,7 @@ export default async function PaymentsPage() {
                 )}
               </Cell>
               <Cell>
-                <PaymentReviewActions paymentId={p.id} state={p.state} />
+                <PaymentActions paymentId={p.id} state={p.state} />
               </Cell>
             </Row>
           ))}

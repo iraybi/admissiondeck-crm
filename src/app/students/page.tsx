@@ -5,6 +5,7 @@ import { listStudents } from "@/lib/students/queries";
 import { getFirmStats } from "@/lib/analytics/stats";
 import { prisma } from "@/lib/db/prisma";
 import { StudentsClient } from "@/components/domain/StudentsClient";
+import { StudentCreateForm } from "@/components/domain/UserActions";
 import { Shell, PageHead } from "@/components/layout/Shell";
 import { adminNav } from "@/lib/portal";
 

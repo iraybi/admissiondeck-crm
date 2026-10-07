@@ -6,6 +6,8 @@ import { Status } from "@/components/ui/Status";
 import { Avatar } from "@/components/ui/Avatar";
 import { Stat, StatGrid } from "@/components/ui/Stat";
 import { PipelineStepper } from "@/components/domain/PipelineStepper";
+import { ApplicationTree, type AppNode } from "@/components/domain/ApplicationTree";
+import { getApplicationTree, getUniversitiesForApplication } from "@/lib/applications/management";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";

@@ -1,13 +1,8 @@
 "use server";
 
-import { prisma } from "@/lib/db/prisma";
-
-
-
-
 import { revalidatePath } from "next/cache";
 import { getCurrentUser, canManageUsers } from "@/lib/auth/session";
-import { resolveScope } from "@/lib/db/scope";
+import { prisma } from "@/lib/db/prisma";
 import {
   createTask,
   updateTaskStatus,
@@ -149,12 +144,15 @@ export async function addNoteAction(
 
   await addNote({ studentId, authorId: user.id, body });
 
-  const student = await getCurrentStudentName(studentId);
+  const student = await prisma.student.findUnique({
+    where: { id: studentId },
+    select: { name: true },
+  });
   await createNotification({
     userId: user.id,
     type: "note",
     title: "Note added",
-    body: `You added a note on ${student ?? "a student"}.`,
+    body: `You added a note on ${student?.name ?? "a student"}.`,
     link: `/students/${studentId}`,
   });
 
@@ -174,15 +172,6 @@ export async function markAllNotificationsRead() {
   if (!user) return;
   await markAllRead(user.id);
   revalidatePath("/notifications");
-}
-
-async function getCurrentStudentName(id: string): Promise<string | null> {
-  const { prisma } = await import("@/lib/db/prisma");
-  const s = await prisma.student.findUnique({
-    where: { id },
-    select: { name: true },
-  });
-  return s?.name ?? null;
 }
 
 export async function deactivateUserAction(userId: string) {

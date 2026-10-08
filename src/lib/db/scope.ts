@@ -8,7 +8,8 @@ export type UserScope = {
 };
 
 /**
- * Resolve the organization subtree a user can see using ltree descendant matching.
+ * Resolve the organization subtree a user can see using text path matching.
+ * Matches self and descendants: exact match or path starting with "orgPath.".
  */
 export async function resolveScope(user: SessionUser): Promise<UserScope> {
   if (!user.orgPath) {
@@ -20,8 +21,8 @@ export async function resolveScope(user: SessionUser): Promise<UserScope> {
   >`
     SELECT id, "orgPath"::text as "orgPath"
     FROM "Organization"
-    WHERE "orgPath" <@ ${user.orgPath}::ltree
-       OR "orgPath" = ${user.orgPath}::ltree
+    WHERE "orgPath"::text = ${user.orgPath}
+       OR "orgPath"::text LIKE ${user.orgPath + ".%"}
   `;
 
   return {
@@ -36,8 +37,8 @@ export async function resolveScopeForOrg(orgPath: string): Promise<UserScope> {
   >`
     SELECT id, "orgPath"::text as "orgPath"
     FROM "Organization"
-    WHERE "orgPath" <@ ${orgPath}::ltree
-       OR "orgPath" = ${orgPath}::ltree
+    WHERE "orgPath"::text = ${orgPath}
+       OR "orgPath"::text LIKE ${orgPath + ".%"}
   `;
 
   return {

@@ -82,6 +82,25 @@ export default async function StudentDetailPage({
   if (!student) notFound();
 
   const timeline = await getStudentTimeline(student.id);
+  const rawTree = await getApplicationTree(student.id);
+  const rawUnis = await getUniversitiesForApplication();
+  // Serialize Dates and Decimals for client component
+  const tree = rawTree.map((country) => ({
+    ...country,
+    applications: country.applications.map((a) => ({
+      ...a,
+      submittedAt: a.submittedAt?.toISOString() ?? null,
+      decidedAt: a.decidedAt?.toISOString() ?? null,
+    })),
+  }));
+  const universities = rawUnis.map((u) => ({
+    ...u,
+    programs: u.programs.map((p) => ({
+      ...p,
+      tuitionAmount: p.tuitionAmount ? Number(p.tuitionAmount) : null,
+    })),
+  }));
+  const totalApps = tree.reduce((t, c) => t + c.counts.total, 0);
   const doneStages = 0; // Stages come from pipeline template, tracked separately
   const progress = student.status === "COMPLETED" || student.status === "VISA" ? 100 : 50;
 
@@ -129,7 +148,7 @@ export default async function StudentDetailPage({
       </div>
 
       <StatGrid>
-        <Stat label="Target country" value={student.targetCountry} hint={student.targetUniversity ?? ""} tone="brand" />
+        <Stat label="Applications" value={totalApps} hint={student.targetCountry} tone="brand" />
         <Stat label="Documents" value={student.documents.length} hint={`${student.documents.filter((d) => d.status === "AVAILABLE").length} approved`} tone="info" />
         <Stat label="Payments" value={student.payments.length} hint={`${student.payments.filter((p) => p.state === "VERIFIED").length} verified`} tone="ok" />
         <Stat label="Open tasks" value={student.tasks.length} hint="In progress" tone="warn" />
@@ -137,6 +156,15 @@ export default async function StudentDetailPage({
 
       <div className="grid-2" style={{ marginTop: "var(--space-6)" }}>
         <div className="stack">
+          {/* Multi-application tree */}
+          <section className="card">
+            <ApplicationTree
+              studentId={student.id}
+              tree={tree}
+              universities={universities}
+            />
+          </section>
+
           {/* Pipeline */}
           <section className="card">
             <div className="card-head">

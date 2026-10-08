@@ -127,7 +127,7 @@ export async function createCommissionEntry(input: {
     ) VALUES (
       gen_random_uuid()::text,
       ${student.id}::text,
-      ${student.orgPath}::ltree,
+      ${student.orgPath}::text,
       ${student.agentId}::text,
       ${input.baseAmount}::decimal,
       ${totalCommission}::decimal,

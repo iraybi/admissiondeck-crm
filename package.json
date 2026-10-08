@@ -9,6 +9,7 @@
     "start": "next start -p 3010",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

@@ -414,13 +414,13 @@ async function main() {
     });
   }
 
-  console.log("Seed complete.");
-  console.log("Firm Login: rezaul@chs.edu.bd / Passw0rd!234 (Org: org.chs)");
-  console.log("Agency Login: tanvir@chs.edu.bd / Passw0rd!234 (Org: org.chs.dhaka)");
-  console.log("Multi-Org Agent: kamrul@sylhetstudylink.com / Passw0rd!234 (Can sign in to org.chs.sylhet OR org.chs.dhaka)");
-  console.log("Multi-Org Counsellor: nusrat@chs.edu.bd / Passw0rd!234 (Can sign in to org.chs.dhaka OR org.chs.ctg)");
-  console.log("Student Login: student@chs.edu.bd / Passw0rd!234 (Org: org.chs.dhaka, Portal: student.crm.admissiondeck.com)");
-  console.log("Platform Admin: admin@admissiondeck.com / Passw0rd!234 (No org identifier needed)");
+  console.log("Seed complete.\n");
+  console.log("Firm Login: rezaul@chs.edu.bd / Passw0rd!234 (Org: org.chs, Domain: dash.crm.admissiondeck.com)");
+  console.log("Agency Login: tanvir@chs.edu.bd / Passw0rd!234 (Org: org.chs.dhaka, Domain: agency.crm.admissiondeck.com or dash.crm.admissiondeck.com)");
+  console.log("Multi-Org Agent: kamrul@sylhetstudylink.com / Passw0rd!234 (Can sign in to org.chs.sylhet OR org.chs.dhaka, Domain: agent.crm.admissiondeck.com or dash.crm.admissiondeck.com)");
+  console.log("Multi-Org Counsellor: nusrat@chs.edu.bd / Passw0rd!234 (Can sign in to org.chs.dhaka OR org.chs.ctg, Domain: counsellor.crm.admissiondeck.com or dash.crm.admissiondeck.com)");
+  console.log("Student Login: student@chs.edu.bd / Passw0rd!234 (Org: org.chs.dhaka, Domain: student.crm.admissiondeck.com)");
+  console.log("Platform Admin: admin@admissiondeck.com / Passw0rd!234 (No org identifier needed, Domain: manage.crm.admissiondeck.com)");
 }
 
 main()

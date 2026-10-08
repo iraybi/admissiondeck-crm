@@ -13,9 +13,13 @@ export type OrgLookup = {
  * Resolve organization from identifier (used on admissiondeck.com login).
  */
 export async function findOrgByIdentifier(identifier: string): Promise<OrgLookup> {
+  const normalized = identifier.toLowerCase().trim();
   const org = await prisma.organization.findFirst({
     where: {
-      identifier: identifier.toLowerCase().trim(),
+      OR: [
+        { identifier: normalized },
+        { orgPath: normalized },
+      ],
     },
     select: {
       id: true,
@@ -90,8 +94,8 @@ export async function setOrgIdentifier(
 }
 
 /**
- * Validate identifier format: lowercase alphanumeric with hyphens.
+ * Validate identifier format: lowercase alphanumeric with dots and hyphens (e.g. org.chs, org.chs.dhaka).
  */
 export function isValidIdentifier(id: string): boolean {
-  return /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/.test(id);
+  return /^[a-z0-9][a-z0-9.-]{1,62}[a-z0-9]$/.test(id);
 }

@@ -214,8 +214,8 @@ function getLoginContent(portal: string): LoginContent {
         workspaceHelp:
           "Access your document checklist, payment status, and application timeline.",
         identifierLabel: "Organization identifier",
-        identifierHint: "Provided by your agency or university",
-        identifierPlaceholder: "e.g. dhaka-central",
+        identifierHint: "Provided by your agency (e.g. org.chs or org.chs.dhaka)",
+        identifierPlaceholder: "e.g. org.chs.dhaka",
         emailPlaceholder: "your@email.com",
         submitLabel: "Sign in",
       };
@@ -230,8 +230,8 @@ function getLoginContent(portal: string): LoginContent {
         workspaceHelp:
           "Manage your assigned students, review documents, and track progress.",
         identifierLabel: "Organization identifier",
-        identifierHint: "Provided by your agency",
-        identifierPlaceholder: "e.g. dhaka-central",
+        identifierHint: "Your branch or firm path (e.g. org.chs.dhaka)",
+        identifierPlaceholder: "e.g. org.chs.dhaka",
         emailPlaceholder: "you@agency.com",
         submitLabel: "Sign in",
       };
@@ -246,8 +246,8 @@ function getLoginContent(portal: string): LoginContent {
         workspaceHelp:
           "See students you've referred, track their progress, and view commissions.",
         identifierLabel: "Organization identifier",
-        identifierHint: "Provided by your agency",
-        identifierPlaceholder: "e.g. dhaka-central",
+        identifierHint: "Your branch or firm path (e.g. org.chs.dhaka)",
+        identifierPlaceholder: "e.g. org.chs.dhaka",
         emailPlaceholder: "you@agency.com",
         submitLabel: "Sign in",
       };
@@ -262,8 +262,8 @@ function getLoginContent(portal: string): LoginContent {
         workspaceHelp:
           "Manage staff, students, and operations for your agency.",
         identifierLabel: "Organization identifier",
-        identifierHint: "Your agency identifier",
-        identifierPlaceholder: "e.g. dhaka-central",
+        identifierHint: "Your agency or firm path (e.g. org.chs.dhaka)",
+        identifierPlaceholder: "e.g. org.chs.dhaka",
         emailPlaceholder: "you@agency.com",
         submitLabel: "Sign in",
       };
@@ -293,8 +293,8 @@ function getLoginContent(portal: string): LoginContent {
         workspaceHelp:
           "Manage agencies, review analytics, and oversee operations.",
         identifierLabel: "Organization identifier",
-        identifierHint: "Your firm identifier",
-        identifierPlaceholder: "e.g. chs",
+        identifierHint: "Your firm path (e.g. org.chs)",
+        identifierPlaceholder: "e.g. org.chs",
         emailPlaceholder: "you@firm.com",
         submitLabel: "Sign in",
       };

@@ -79,15 +79,26 @@ export async function loginAction(
 
   if (!result.ok) return { ok: false, error: result.error };
 
-  // If identifier provided, verify user belongs to that org (platform admin operates globally without org)
+  // If identifier provided, verify user belongs to that org hierarchy (platform admin operates globally without org)
   if (result.user.role !== "PLATFORM_ADMIN" && identifier && result.user.orgId) {
     const { findOrgByIdentifier } = await import("./organization");
     const org = await findOrgByIdentifier(identifier);
     if (org && result.user.orgId !== org.id) {
-      return {
-        ok: false,
-        error: "Your account is not associated with this organization.",
-      };
+      const userOrg = await prisma.organization.findUnique({
+        where: { id: result.user.orgId },
+        select: { id: true, orgPath: true },
+      });
+      const isAssociated =
+        userOrg &&
+        (userOrg.orgPath === org.orgPath ||
+          userOrg.orgPath.startsWith(org.orgPath + ".") ||
+          org.orgPath.startsWith(userOrg.orgPath + "."));
+      if (!isAssociated) {
+        return {
+          ok: false,
+          error: "Your account is not associated with this organization.",
+        };
+      }
     }
   }
 

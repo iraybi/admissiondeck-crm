@@ -15,12 +15,12 @@ async function main() {
   const firm = await prisma.organization.upsert({
     where: { orgPath: "org.chs" },
     update: {
-      identifier: "chs",
+      identifier: "org.chs",
       displayName: "Center for Higher Studies",
     },
     create: {
       name: "Center for Higher Studies",
-      identifier: "chs",
+      identifier: "org.chs",
       displayName: "Center for Higher Studies",
       kind: "FIRM",
       orgPath: "org.chs",
@@ -32,9 +32,9 @@ async function main() {
 
   // Agencies
   const agencySpecs = [
-    { name: "Dhaka Central", path: "org.chs.dhaka", identifier: "dhaka-central", city: "Dhaka" },
-    { name: "Chattogram Branch", path: "org.chs.ctg", identifier: "chattogram-branch", city: "Chattogram" },
-    { name: "Sylhet Desk", path: "org.chs.sylhet", identifier: "sylhet-desk", city: "Sylhet" },
+    { name: "Dhaka Central", path: "org.chs.dhaka", identifier: "org.chs.dhaka", city: "Dhaka" },
+    { name: "Chattogram Branch", path: "org.chs.ctg", identifier: "org.chs.ctg", city: "Chattogram" },
+    { name: "Sylhet Desk", path: "org.chs.sylhet", identifier: "org.chs.sylhet", city: "Sylhet" },
   ];
 
   const agencies = [];
@@ -253,8 +253,8 @@ async function main() {
   }
 
   console.log("Seed complete.");
-  console.log("Firm Login: rezaul@chs.edu.bd / Passw0rd!234 (Org: chs)");
-  console.log("Agency Login: tanvir@chs.edu.bd / Passw0rd!234 (Org: dhaka-central)");
+  console.log("Firm Login: rezaul@chs.edu.bd / Passw0rd!234 (Org: org.chs)");
+  console.log("Agency Login: tanvir@chs.edu.bd / Passw0rd!234 (Org: org.chs.dhaka)");
   console.log("Platform Admin: admin@admissiondeck.com / Passw0rd!234 (No org identifier needed)");
 }
 

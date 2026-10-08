@@ -117,8 +117,8 @@ export default function LoginPage() {
             </div>
           ) : null}
 
-          {/* Identifier field only on admissiondeck.com subdomains */}
-          {!isCustomDomain ? (
+          {/* Identifier field only on tenant subdomains (not custom domains or platform admin) */}
+          {!isCustomDomain && portal !== "super" ? (
             <Field
               label={content.identifierLabel}
               hint={content.identifierHint}
@@ -276,9 +276,9 @@ function getLoginContent(portal: string): LoginContent {
         formSubtitle: "Sign in to the SaaS management console.",
         workspaceLabel: "SaaS management",
         workspaceHelp: "Oversee all tenants, billing, and platform health.",
-        identifierLabel: "Organization identifier",
-        identifierHint: "Platform identifier",
-        identifierPlaceholder: "chs",
+        identifierLabel: "",
+        identifierHint: "",
+        identifierPlaceholder: "",
         emailPlaceholder: "admin@admissiondeck.com",
         submitLabel: "Sign in",
       };

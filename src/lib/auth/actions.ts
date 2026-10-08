@@ -79,8 +79,8 @@ export async function loginAction(
 
   if (!result.ok) return { ok: false, error: result.error };
 
-  // If identifier provided, verify user belongs to that org
-  if (identifier && result.user.orgId) {
+  // If identifier provided, verify user belongs to that org (platform admin operates globally without org)
+  if (result.user.role !== "PLATFORM_ADMIN" && identifier && result.user.orgId) {
     const { findOrgByIdentifier } = await import("./organization");
     const org = await findOrgByIdentifier(identifier);
     if (org && result.user.orgId !== org.id) {
@@ -101,7 +101,11 @@ export async function loginAction(
     return { ok: false, error: mfaResult.error ?? "MFA verification failed" };
   }
 
+  const role = formData.get("role")?.toString();
   await setSessionToken(result.token);
+  if (result.user.role === "PLATFORM_ADMIN" || role === "super") {
+    redirect("/platform");
+  }
   redirect("/");
 }
 

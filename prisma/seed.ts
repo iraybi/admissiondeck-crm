@@ -255,7 +255,7 @@ async function main() {
   console.log("Seed complete.");
   console.log("Firm Login: rezaul@chs.edu.bd / Passw0rd!234 (Org: chs)");
   console.log("Agency Login: tanvir@chs.edu.bd / Passw0rd!234 (Org: dhaka-central)");
-  console.log("Platform Admin: admin@admissiondeck.com / Passw0rd!234 (Org: chs)");
+  console.log("Platform Admin: admin@admissiondeck.com / Passw0rd!234 (No org identifier needed)");
 }
 
 main()

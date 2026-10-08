@@ -3,6 +3,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import styles from "./TopBar.module.css";
 
+import { OrgSwitcher } from "./OrgSwitcher";
+
 const PORTAL_LABEL: Record<string, string> = {
   landing: "Marketing",
   dash: "Dashboard",
@@ -18,18 +20,22 @@ export function TopBar({
   portal,
   orgName,
   orgPath,
+  orgId,
   user,
   logoUrl,
   hostname,
   isCustomDomain,
+  memberships,
 }: {
   portal: string;
   orgName: string;
   orgPath: string;
+  orgId?: string | null;
   user: { name: string; role: string };
   logoUrl?: string | null;
   hostname?: string;
   isCustomDomain?: boolean;
+  memberships?: { orgId: string; orgName: string; orgPath: string; role: string }[];
 }) {
   const portalLabel = PORTAL_LABEL[portal] ?? portal;
   const displayHost =
@@ -57,9 +63,11 @@ export function TopBar({
 
       {/* Org context */}
       <div className={styles.org}>
-        <div className={styles.path} title={orgPath}>
-          {orgPath}
-        </div>
+        <OrgSwitcher
+          currentOrgId={orgId}
+          currentOrgPath={orgPath}
+          memberships={memberships}
+        />
       </div>
 
       {/* Right side */}

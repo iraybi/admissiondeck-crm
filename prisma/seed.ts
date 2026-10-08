@@ -65,7 +65,7 @@ async function main() {
   const passwordHash = await hashPassword("Passw0rd!234");
 
   // Admin / firm manager
-  await prisma.user.upsert({
+  const rezaul = await prisma.user.upsert({
     where: { email: "rezaul@chs.edu.bd" },
     update: {},
     create: {
@@ -79,7 +79,13 @@ async function main() {
     },
   });
 
-  // Agency managers
+  await prisma.orgMembership.upsert({
+    where: { userId_orgId: { userId: rezaul.id, orgId: firm.id } },
+    update: { role: "FIRM_MANAGER" },
+    create: { userId: rezaul.id, orgId: firm.id, role: "FIRM_MANAGER", isActive: true },
+  });
+
+  // Agency managers & agents
   const managerSpecs = [
     { email: "tanvir@chs.edu.bd", name: "Tanvir Ahmed", orgId: agencies[0].id },
     { email: "farhana@chs.edu.bd", name: "Farhana Akter", orgId: agencies[1].id },
@@ -87,19 +93,35 @@ async function main() {
   ];
 
   for (const m of managerSpecs) {
-    await prisma.user.upsert({
+    const role = m.email.includes("kamrul") ? "AGENT" : "AGENCY_MANAGER";
+    const u = await prisma.user.upsert({
       where: { email: m.email },
       update: {},
       create: {
         email: m.email,
         name: m.name,
-        role: m.email.includes("kamrul") ? "AGENT" : "AGENCY_MANAGER",
+        role,
         orgId: m.orgId,
         passwordHash,
         isActive: true,
         passwordChangedAt: new Date(),
       },
     });
+
+    await prisma.orgMembership.upsert({
+      where: { userId_orgId: { userId: u.id, orgId: m.orgId } },
+      update: { role },
+      create: { userId: u.id, orgId: m.orgId, role, isActive: true },
+    });
+
+    // Demonstrate multi-org: Kamrul (agent) is also affiliated with Dhaka Central
+    if (m.email.includes("kamrul")) {
+      await prisma.orgMembership.upsert({
+        where: { userId_orgId: { userId: u.id, orgId: agencies[0].id } },
+        update: { role: "AGENT" },
+        create: { userId: u.id, orgId: agencies[0].id, role: "AGENT", isActive: true },
+      });
+    }
   }
 
   // Counsellors
@@ -110,7 +132,7 @@ async function main() {
   ];
 
   for (const c of counsellorSpecs) {
-    await prisma.user.upsert({
+    const u = await prisma.user.upsert({
       where: { email: c.email },
       update: {},
       create: {
@@ -123,6 +145,21 @@ async function main() {
         passwordChangedAt: new Date(),
       },
     });
+
+    await prisma.orgMembership.upsert({
+      where: { userId_orgId: { userId: u.id, orgId: c.orgId } },
+      update: { role: "COUNSELLOR" },
+      create: { userId: u.id, orgId: c.orgId, role: "COUNSELLOR", isActive: true },
+    });
+
+    // Demonstrate multi-org: Nusrat also counsels for Chattogram Branch
+    if (c.email.includes("nusrat")) {
+      await prisma.orgMembership.upsert({
+        where: { userId_orgId: { userId: u.id, orgId: agencies[1].id } },
+        update: { role: "COUNSELLOR" },
+        create: { userId: u.id, orgId: agencies[1].id, role: "COUNSELLOR", isActive: true },
+      });
+    }
   }
 
   // Platform admin
@@ -255,6 +292,8 @@ async function main() {
   console.log("Seed complete.");
   console.log("Firm Login: rezaul@chs.edu.bd / Passw0rd!234 (Org: org.chs)");
   console.log("Agency Login: tanvir@chs.edu.bd / Passw0rd!234 (Org: org.chs.dhaka)");
+  console.log("Multi-Org Agent: kamrul@sylhetstudylink.com / Passw0rd!234 (Can sign in to org.chs.sylhet OR org.chs.dhaka)");
+  console.log("Multi-Org Counsellor: nusrat@chs.edu.bd / Passw0rd!234 (Can sign in to org.chs.dhaka OR org.chs.ctg)");
   console.log("Platform Admin: admin@admissiondeck.com / Passw0rd!234 (No org identifier needed)");
 }
 

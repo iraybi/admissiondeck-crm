@@ -19,6 +19,13 @@ const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 const MAX_FAILED_LOGINS = 8;
 const LOCKOUT_MS = 1000 * 60 * 15; // 15 minutes
 
+export type SessionMembership = {
+  orgId: string;
+  orgName: string;
+  orgPath: string;
+  role: string;
+};
+
 export type SessionUser = {
   id: string;
   email: string;
@@ -29,12 +36,22 @@ export type SessionUser = {
   orgPath: string | null;
   avatarUrl: string | null;
   isActive: boolean;
+  memberships: SessionMembership[];
 };
 
-export async function login(input: LoginInput, meta: { ip?: string; userAgent?: string }) {
+export async function login(
+  input: LoginInput,
+  meta: { ip?: string; userAgent?: string; orgId?: string },
+) {
   const user = await prisma.user.findUnique({
     where: { email: input.email.toLowerCase() },
-    include: { org: true },
+    include: {
+      org: true,
+      memberships: {
+        include: { org: true },
+        where: { isActive: true },
+      },
+    },
   });
 
   if (!user || !user.passwordHash || !user.isActive) {
@@ -63,18 +80,87 @@ export async function login(input: LoginInput, meta: { ip?: string; userAgent?: 
     return { ok: false as const, error: "Invalid email or password" };
   }
 
+  // Resolve active org and role for this session
+  let activeOrgId: string | null = null;
+  let activeRole: any = user.role;
+  let activeOrg: any = user.org;
+
+  if (user.role === "PLATFORM_ADMIN") {
+    activeOrgId = null;
+    activeRole = "PLATFORM_ADMIN";
+    activeOrg = null;
+  } else if (meta.orgId) {
+    // Check direct membership match
+    const directMembership = user.memberships?.find((m) => m.orgId === meta.orgId);
+    if (directMembership) {
+      activeOrgId = directMembership.orgId;
+      activeRole = directMembership.role;
+      activeOrg = directMembership.org;
+    } else if (user.orgId === meta.orgId) {
+      activeOrgId = user.orgId;
+      activeRole = user.role;
+      activeOrg = user.org;
+    } else {
+      // Check hierarchical match in tree
+      const targetOrg = await prisma.organization.findUnique({
+        where: { id: meta.orgId },
+      });
+      const matchingMembership = user.memberships?.find(
+        (m) =>
+          targetOrg &&
+          (m.org.orgPath === targetOrg.orgPath ||
+            m.org.orgPath.startsWith(targetOrg.orgPath + ".") ||
+            targetOrg.orgPath.startsWith(m.org.orgPath + ".")),
+      );
+      if (matchingMembership) {
+        activeOrgId = matchingMembership.orgId;
+        activeRole = matchingMembership.role;
+        activeOrg = matchingMembership.org;
+      } else if (
+        targetOrg &&
+        user.org &&
+        (user.org.orgPath === targetOrg.orgPath ||
+          user.org.orgPath.startsWith(targetOrg.orgPath + ".") ||
+          targetOrg.orgPath.startsWith(user.org.orgPath + "."))
+      ) {
+        activeOrgId = user.orgId;
+        activeRole = user.role;
+        activeOrg = user.org;
+      } else {
+        return {
+          ok: false as const,
+          error: "Your account is not associated with this organization.",
+        };
+      }
+    }
+  } else {
+    // Default to primary org or first membership
+    if (user.orgId) {
+      activeOrgId = user.orgId;
+      activeRole = user.role;
+      activeOrg = user.org;
+    } else if (user.memberships && user.memberships.length > 0) {
+      activeOrgId = user.memberships[0].orgId;
+      activeRole = user.memberships[0].role;
+      activeOrg = user.memberships[0].org;
+    }
+  }
+
   const token = generateToken();
   const tokenHash = await hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
 
-  await prisma.session.create({
+  const session = await prisma.session.create({
     data: {
       userId: user.id,
+      orgId: activeOrgId,
+      role: activeRole,
       tokenHash,
       ip: meta.ip,
       userAgent: meta.userAgent,
       expiresAt,
     },
+    include: { org: true },
   });
 
   await prisma.user.update({
@@ -89,7 +175,7 @@ export async function login(input: LoginInput, meta: { ip?: string; userAgent?: 
   return {
     ok: true as const,
     token,
-    user: toSessionUser(user),
+    user: toSessionUser(user, session),
   };
 }
 
@@ -106,7 +192,16 @@ export async function getSessionUser(token: string): Promise<SessionUser | null>
   const session = await prisma.session.findUnique({
     where: { tokenHash },
     include: {
-      user: { include: { org: true } },
+      user: {
+        include: {
+          org: true,
+          memberships: {
+            include: { org: true },
+            where: { isActive: true },
+          },
+        },
+      },
+      org: true,
     },
   });
 
@@ -115,7 +210,7 @@ export async function getSessionUser(token: string): Promise<SessionUser | null>
   if (session.expiresAt < new Date()) return null;
   if (!session.user.isActive) return null;
 
-  return toSessionUser(session.user);
+  return toSessionUser(session.user, session);
 }
 
 export async function changePassword(
@@ -227,13 +322,60 @@ export async function createInvite(input: {
 
   const existing = await prisma.user.findUnique({
     where: { email: input.email.toLowerCase() },
+    include: { memberships: true },
   });
-  if (existing) return { ok: false as const, error: "Email already in use" };
+
+  if (existing) {
+    const isAlreadyMember =
+      existing.orgId === input.orgId ||
+      existing.memberships.some((m) => m.orgId === input.orgId);
+
+    if (isAlreadyMember) {
+      return { ok: false as const, error: "User is already a member of this organization" };
+    }
+
+    await prisma.orgMembership.create({
+      data: {
+        userId: existing.id,
+        orgId: input.orgId,
+        role: input.role,
+        isActive: true,
+      },
+    });
+
+    await prisma.organization.update({
+      where: { id: input.orgId },
+      data: { seatsUsed: { increment: 1 } },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        orgPath: org.orgPath,
+        actorId: input.invitedById,
+        action: "user.membership_added",
+        entityType: "User",
+        entityId: existing.email,
+        after: { name: existing.name, role: input.role, orgId: input.orgId },
+      },
+    });
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3010";
+    await sendEmail(
+      welcomeEmail({
+        to: existing.email,
+        name: existing.name,
+        orgName: org.name,
+        loginUrl: `${appUrl}/login`,
+      }),
+    );
+
+    return { ok: true as const };
+  }
 
   const token = generateToken();
   const inviteTokenHash = await hashToken(token);
 
-  await prisma.user.create({
+  const newUser = await prisma.user.create({
     data: {
       name: input.name,
       email: input.email.toLowerCase(),
@@ -242,6 +384,15 @@ export async function createInvite(input: {
       inviteTokenHash,
       inviteTokenExpires: new Date(Date.now() + INVITE_TTL_MS),
       invitedById: input.invitedById,
+      isActive: true,
+    },
+  });
+
+  await prisma.orgMembership.create({
+    data: {
+      userId: newUser.id,
+      orgId: input.orgId,
+      role: input.role,
       isActive: true,
     },
   });
@@ -396,25 +547,83 @@ export async function revokeAllSessions(userId: string, exceptToken?: string) {
   });
 }
 
-function toSessionUser(user: {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  orgId: string | null;
-  avatarUrl: string | null;
-  isActive: boolean;
-  org?: { name: string; orgPath: string } | null;
-}): SessionUser {
+export async function switchSessionOrg(token: string, targetOrgId: string) {
+  const tokenHash = await hashToken(token);
+  const session = await prisma.session.findUnique({
+    where: { tokenHash },
+    include: {
+      user: {
+        include: {
+          memberships: {
+            include: { org: true },
+            where: { isActive: true },
+          },
+          org: true,
+        },
+      },
+    },
+  });
+
+  if (!session || session.revokedAt || session.expiresAt < new Date()) {
+    return { ok: false as const, error: "Session invalid or expired" };
+  }
+
+  const membership =
+    session.user.memberships.find((m) => m.orgId === targetOrgId) ??
+    (session.user.orgId === targetOrgId
+      ? { orgId: targetOrgId, role: session.user.role }
+      : null);
+
+  if (!membership && session.user.role !== "PLATFORM_ADMIN") {
+    return { ok: false as const, error: "Not a member of this organization" };
+  }
+
+  await prisma.session.update({
+    where: { id: session.id },
+    data: {
+      orgId: targetOrgId,
+      role: (membership?.role as any) ?? session.user.role,
+    },
+  });
+
+  return { ok: true as const };
+}
+
+function toSessionUser(
+  user: any,
+  session?: { orgId?: string | null; role?: string | null; org?: any | null } | null,
+): SessionUser {
+  const activeOrg =
+    session?.org ?? (session?.orgId === user.orgId ? user.org : null) ?? user.org;
+  const activeOrgId = session?.orgId ?? user.orgId ?? null;
+  const activeRole = session?.role ?? user.role;
+
+  const memberships: SessionMembership[] = (user.memberships ?? []).map((m: any) => ({
+    orgId: m.orgId,
+    orgName: m.org?.name ?? "",
+    orgPath: m.org?.orgPath ?? "",
+    role: m.role,
+  }));
+
+  if (user.orgId && !memberships.some((m) => m.orgId === user.orgId)) {
+    memberships.unshift({
+      orgId: user.orgId,
+      orgName: user.org?.name ?? "",
+      orgPath: user.org?.orgPath ?? "",
+      role: user.role,
+    });
+  }
+
   return {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role,
-    orgId: user.orgId,
-    orgName: user.org?.name ?? null,
-    orgPath: user.org?.orgPath ?? null,
+    role: activeRole,
+    orgId: activeOrgId,
+    orgName: activeOrg?.name ?? null,
+    orgPath: activeOrg?.orgPath ?? null,
     avatarUrl: user.avatarUrl,
     isActive: user.isActive,
+    memberships,
   };
 }

@@ -48,6 +48,7 @@ export async function loginAction(
 
   // Check for organization identifier (required on admissiondeck.com, optional on custom domains)
   const identifier = formData.get("identifier")?.toString().trim();
+  let requestedOrg: { id: string } | null = null;
 
   // If identifier provided, validate it exists
   if (identifier) {
@@ -59,12 +60,12 @@ export async function loginAction(
       return {
         ok: false,
         error:
-          "Invalid identifier format. Use lowercase letters, numbers, and hyphens.",
+          "Invalid identifier format. Use lowercase letters, numbers, hyphens, and dots.",
       };
     }
 
-    const org = await findOrgByIdentifier(identifier);
-    if (!org) {
+    requestedOrg = await findOrgByIdentifier(identifier);
+    if (!requestedOrg) {
       return {
         ok: false,
         error: "Organization not found. Check your identifier.",
@@ -75,32 +76,10 @@ export async function loginAction(
   const result = await loginAccount(parsed.data, {
     ip: formData.get("ip")?.toString(),
     userAgent: formData.get("userAgent")?.toString(),
+    orgId: requestedOrg?.id,
   });
 
   if (!result.ok) return { ok: false, error: result.error };
-
-  // If identifier provided, verify user belongs to that org hierarchy (platform admin operates globally without org)
-  if (result.user.role !== "PLATFORM_ADMIN" && identifier && result.user.orgId) {
-    const { findOrgByIdentifier } = await import("./organization");
-    const org = await findOrgByIdentifier(identifier);
-    if (org && result.user.orgId !== org.id) {
-      const userOrg = await prisma.organization.findUnique({
-        where: { id: result.user.orgId },
-        select: { id: true, orgPath: true },
-      });
-      const isAssociated =
-        userOrg &&
-        (userOrg.orgPath === org.orgPath ||
-          userOrg.orgPath.startsWith(org.orgPath + ".") ||
-          org.orgPath.startsWith(userOrg.orgPath + "."));
-      if (!isAssociated) {
-        return {
-          ok: false,
-          error: "Your account is not associated with this organization.",
-        };
-      }
-    }
-  }
 
   // Check MFA
   const { verifyMfa } = await import("./mfa-service");
@@ -328,4 +307,13 @@ export async function deactivateUserAction(userId: string) {
       entityId: userId,
     },
   });
+}
+
+export async function switchOrgAction(targetOrgId: string) {
+  const token = await getSessionToken();
+  if (!token) return { ok: false, error: "Not authenticated" };
+  const { switchSessionOrg } = await import("./account");
+  const res = await switchSessionOrg(token, targetOrgId);
+  if (!res.ok) return res;
+  redirect("/");
 }

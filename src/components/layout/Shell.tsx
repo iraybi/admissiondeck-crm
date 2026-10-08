@@ -11,6 +11,7 @@ export function Shell({
   portal,
   orgName,
   orgPath,
+  orgId,
   user,
   nav,
   logoUrl,
@@ -21,7 +22,13 @@ export function Shell({
   isCustomDomain?: boolean;
   orgName: string;
   orgPath: string;
-  user: { name: string; role: string };
+  orgId?: string | null;
+  user: {
+    name: string;
+    role: string;
+    orgId?: string | null;
+    memberships?: { orgId: string; orgName: string; orgPath: string; role: string }[];
+  };
   nav: NavItem[];
   logoUrl?: string | null;
   children: ReactNode;
@@ -32,10 +39,12 @@ export function Shell({
         portal={portal}
         orgName={orgName}
         orgPath={orgPath}
+        orgId={orgId ?? user.orgId}
         user={user}
         hostname={hostname}
         isCustomDomain={isCustomDomain}
         logoUrl={logoUrl}
+        memberships={user.memberships}
       />
       <div className="shell-body">
         <SideNav items={nav} />

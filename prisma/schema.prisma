@@ -156,6 +156,8 @@ model Organization {
   subscription  Subscription?
   commissions   CommissionSchedule[]
   customDomains CustomDomain[]
+  memberships   OrgMembership[]
+  sessions      Session[]
 
   @@index([parentId])
   @@index([kind])
@@ -207,23 +209,44 @@ model User {
   notifications      Notification[]
   notes              Note[]
   transitions        StateTransition[]
+  memberships        OrgMembership[]
 
   @@index([orgId, role])
   @@index([orgId, isActive])
 }
 
 model Session {
-  id           String   @id @default(uuid())
+  id           String        @id @default(uuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash    String   @unique
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgId        String?
+  org          Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  role         UserRole?
+  tokenHash    String        @unique
   userAgent    String?
   ip           String?
   expiresAt    DateTime
   revokedAt    DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime      @default(now())
 
   @@index([userId, expiresAt])
+  @@index([orgId])
+}
+
+model OrgMembership {
+  id        String       @id @default(uuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  role      UserRole     @default(AGENT)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([userId, orgId])
+  @@index([userId])
+  @@index([orgId])
 }
 
 model Student {

@@ -289,11 +289,137 @@ async function main() {
     });
   }
 
+  // Student demo user & linked student profile
+  const studentUser = await prisma.user.upsert({
+    where: { email: "student@chs.edu.bd" },
+    update: {
+      orgId: agencies[0].id,
+      role: "STUDENT",
+      isActive: true,
+    },
+    create: {
+      email: "student@chs.edu.bd",
+      name: "Ayesha Siddiqua",
+      role: "STUDENT",
+      orgId: agencies[0].id,
+      passwordHash,
+      isActive: true,
+      passwordChangedAt: new Date(),
+    },
+  });
+
+  await prisma.orgMembership.upsert({
+    where: { userId_orgId: { userId: studentUser.id, orgId: agencies[0].id } },
+    update: { role: "STUDENT", isActive: true },
+    create: { userId: studentUser.id, orgId: agencies[0].id, role: "STUDENT", isActive: true },
+  });
+
+  const nusratUser = await prisma.user.findUnique({ where: { email: "nusrat@chs.edu.bd" } });
+  const kamrulUser = await prisma.user.findUnique({ where: { email: "kamrul@sylhetstudylink.com" } });
+  const ukTemplate = await prisma.pipelineTemplate.findUnique({ where: { country: "United Kingdom" } });
+
+  const studentRecord = await prisma.student.upsert({
+    where: { userId: studentUser.id },
+    update: {
+      counsellorId: nusratUser?.id,
+      agentId: kamrulUser?.id,
+      orgPath: agencies[0].orgPath,
+      status: "ACTIVE",
+    },
+    create: {
+      userId: studentUser.id,
+      email: "student@chs.edu.bd",
+      name: "Ayesha Siddiqua",
+      phone: "+880 1711-204518",
+      passportNumber: "A02948123",
+      nationality: "Bangladeshi",
+      orgId: agencies[0].id,
+      orgPath: agencies[0].orgPath,
+      targetCountry: "United Kingdom",
+      targetUniversity: "University of Greenwich",
+      targetProgram: "MSc Data Science",
+      targetIntake: "Sept 2026",
+      status: "ACTIVE",
+      counsellorId: nusratUser?.id,
+      agentId: kamrulUser?.id,
+      pipelineTemplateId: ukTemplate?.id,
+    },
+  });
+
+  // Sample student documents
+  const sampleDocs = [
+    { type: "Passport copy", fileName: "passport_ayesha.pdf", status: "AVAILABLE" as const, bucket: "PRODUCTION" as const },
+    { type: "IELTS UKVI result", fileName: "ielts_trf_ayesha.pdf", status: "AVAILABLE" as const, bucket: "PRODUCTION" as const },
+    { type: "Academic transcripts", fileName: "bsc_transcripts.pdf", status: "UPLOADED" as const, bucket: "QUARANTINE" as const },
+  ];
+
+  for (const doc of sampleDocs) {
+    const existingDoc = await prisma.document.findFirst({
+      where: { studentId: studentRecord.id, type: doc.type },
+    });
+    if (!existingDoc) {
+      await prisma.document.create({
+        data: {
+          studentId: studentRecord.id,
+          orgPath: agencies[0].orgPath,
+          type: doc.type,
+          fileName: doc.fileName,
+          storageKey: `students/${studentRecord.id}/${doc.fileName}`,
+          bucket: doc.bucket,
+          scanStatus: "CLEAN",
+          status: doc.status,
+          uploadedById: studentUser.id,
+          sizeBytes: 1024 * 350,
+          mimeType: "application/pdf",
+          sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        },
+      });
+    }
+  }
+
+  // Sample verified tuition deposit payment
+  const existingPayment = await prisma.payment.findFirst({
+    where: { studentId: studentRecord.id, title: "Tuition Deposit" },
+  });
+  if (!existingPayment) {
+    await prisma.payment.create({
+      data: {
+        studentId: studentRecord.id,
+        orgPath: agencies[0].orgPath,
+        title: "Tuition Deposit",
+        amount: 250000,
+        currency: "BDT",
+        method: "BANK_TRANSFER",
+        state: "VERIFIED",
+        milestone: "Offer Acceptance",
+        reference: "TXN-2026-GREENWICH-01",
+        verifiedById: nusratUser?.id,
+        verifiedAt: new Date(),
+      },
+    });
+  }
+
+  // Sample counsellor consultation note
+  const existingNote = await prisma.note.findFirst({
+    where: { studentId: studentRecord.id },
+  });
+  if (!existingNote && nusratUser) {
+    await prisma.note.create({
+      data: {
+        studentId: studentRecord.id,
+        authorId: nusratUser.id,
+        body: "Initial consultation completed. IELTS score (7.0) verified. Application submitted to University of Greenwich.",
+        isPinned: true,
+      },
+    });
+  }
+
   console.log("Seed complete.");
   console.log("Firm Login: rezaul@chs.edu.bd / Passw0rd!234 (Org: org.chs)");
   console.log("Agency Login: tanvir@chs.edu.bd / Passw0rd!234 (Org: org.chs.dhaka)");
   console.log("Multi-Org Agent: kamrul@sylhetstudylink.com / Passw0rd!234 (Can sign in to org.chs.sylhet OR org.chs.dhaka)");
   console.log("Multi-Org Counsellor: nusrat@chs.edu.bd / Passw0rd!234 (Can sign in to org.chs.dhaka OR org.chs.ctg)");
+  console.log("Student Login: student@chs.edu.bd / Passw0rd!234 (Org: org.chs.dhaka, Portal: student.crm.admissiondeck.com)");
   console.log("Platform Admin: admin@admissiondeck.com / Passw0rd!234 (No org identifier needed)");
 }
 

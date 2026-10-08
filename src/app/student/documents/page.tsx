@@ -13,6 +13,7 @@ const nav: NavItem[] = [
   { href: "/student", label: "My journey" },
   { href: "/student/documents", label: "Documents" },
   { href: "/student/payments", label: "Payments" },
+  { href: "/settings", label: "Settings" },
 ];
 
 const STATUS_TONE: Record<string, "ok" | "brand" | "warn" | "bad"> = {

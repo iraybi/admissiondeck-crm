@@ -1,8 +1,17 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/session";
 import { Button } from "@/components/ui/Button";
 import styles from "./landing.module.css";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const user = await getCurrentUser();
+  if (user) {
+    if (user.role === "PLATFORM_ADMIN") redirect("/platform");
+    if (user.role === "STUDENT") redirect("/student");
+    redirect("/dash");
+  }
+
   return (
     <div className={styles.wrap}>
       <header className={styles.header}>

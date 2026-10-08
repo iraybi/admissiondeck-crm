@@ -10,7 +10,7 @@ import { formatDate, formatMoney } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 const nav: NavItem[] = [
-  { href: "/", label: "My journey" },
+  { href: "/student", label: "My journey" },
   { href: "/student/documents", label: "Documents" },
   { href: "/student/payments", label: "Payments" },
   { href: "/settings", label: "Settings" },

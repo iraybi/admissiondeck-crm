@@ -96,7 +96,10 @@ export async function loginAction(
   if (result.user.role === "PLATFORM_ADMIN" || role === "super") {
     redirect("/platform");
   }
-  redirect("/");
+  if (result.user.role === "STUDENT" || role === "student") {
+    redirect("/student");
+  }
+  redirect("/dash");
 }
 
 export async function logoutAction() {
